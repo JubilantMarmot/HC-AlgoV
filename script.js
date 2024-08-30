@@ -3,23 +3,27 @@ const startNodeInput = document.getElementById('start-node');
 const endNodeInput = document.getElementById('end-node');
 const runAlgorithmButton = document.getElementById('run-algorithm');
 const algorithmSelect = document.getElementById('algorithm-select');
+const speedSlider = document.getElementById('speed-slider');
 
 let nodes = [];
 let edges = [];
 let adjacencyList = {};
 
+function spreadNodes() {
+    const rows = Math.ceil(Math.sqrt(nodes.length));
+    const cols = Math.ceil(nodes.length / rows);
+    const spacing = 500
+
+    nodes.forEach((node, index) => {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        node.x = col * spacing + 100;
+        node.y = row * spacing + 100;
+    });
+}
+
 function drawGraph() {
     graphContainer.innerHTML = '';
-
-    nodes.forEach(node => {
-        const nodeElement = document.createElement('div');
-        nodeElement.className = 'node';
-        nodeElement.style.left = `${node.x}px`;
-        nodeElement.style.top = `${node.y}px`;
-        nodeElement.innerText = node.id;
-        nodeElement.dataset.id = node.id;
-        graphContainer.appendChild(nodeElement);
-    });
 
     edges.forEach(edge => {
         const fromNode = nodes.find(node => node.id === edge.from);
@@ -34,14 +38,24 @@ function drawGraph() {
         edgeElement.style.top = `${fromNode.y}px`;
         graphContainer.appendChild(edgeElement);
     });
+
+    nodes.forEach(node => {
+        const nodeElement = document.createElement('div');
+        nodeElement.className = 'node';
+        nodeElement.style.left = `${node.x}px`;
+        nodeElement.style.top = `${node.y}px`;
+        nodeElement.innerText = node.id;
+        nodeElement.dataset.id = node.id;
+        graphContainer.appendChild(nodeElement);
+    });
 }
 
 function initializeGraph() {
     nodes = [
-        { id: 0, x: 50, y: 50 },
-        { id: 1, x: 200, y: 50 },
-        { id: 2, x: 50, y: 200 },
-        { id: 3, x: 200, y: 200 }
+        { id: 0, x: 0, y: 0 },
+        { id: 1, x: 0, y: 0 },
+        { id: 2, x: 0, y: 0 },
+        { id: 3, x: 0, y: 0 }
     ];
     
     edges = [
@@ -52,6 +66,7 @@ function initializeGraph() {
         { from: 1, to: 3, weight: 30 }
     ];
     
+    spreadNodes();
     drawGraph();
 }
 
@@ -97,7 +112,7 @@ function dijkstra(start, end) {
         });
     }
 
-    visualizeShortestPath(start, end, distances, previousNodes);
+    visualizeShortestPath(start, end, previousNodes);
 }
 
 function astar(start, end) {
@@ -123,7 +138,7 @@ function astar(start, end) {
         }, [...openSet][0]);
 
         if (currentNode === end) {
-            return visualizeShortestPath(start, end, gScores, previousNodes);
+            return visualizeShortestPath(start, end, previousNodes);
         }
 
         openSet.delete(currentNode);
@@ -149,13 +164,18 @@ function heuristic(node, end) {
     return Math.abs(nodePos.x - endPos.x) + Math.abs(nodePos.y - endPos.y);
 }
 
-function visualizeShortestPath(start, end, distances, previousNodes) {
+function visualizeShortestPath(start, end, previousNodes) {
     document.querySelectorAll('.start-node, .end-node, .path-node, .visited-node').forEach(el => {
         el.classList.remove('start-node', 'end-node', 'path-node', 'visited-node');
     });
 
     document.querySelector(`.node[data-id="${start}"]`).classList.add('start-node');
     document.querySelector(`.node[data-id="${end}"]`).classList.add('end-node');
+
+    let path = [];
+    for (let at = end; at !== null; at = previousNodes[at]) {
+        path.unshift(at);
+    }
 
     let step = 0;
     let cumulativeDelay = 0;
@@ -171,8 +191,8 @@ function visualizeShortestPath(start, end, distances, previousNodes) {
         }
     }
 
-    Object.keys(distances).forEach(nodeId => {
-        if (distances[nodeId] !== Infinity && nodeId !== start && nodeId !== end) {
+    Object.keys(previousNodes).forEach(nodeId => {
+        if (previousNodes[nodeId] !== null && nodeId !== start && nodeId !== end) {
             document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('visited-node');
         }
     });
