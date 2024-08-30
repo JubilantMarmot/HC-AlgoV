@@ -99,8 +99,14 @@ function dijkstra(start, end) {
     visualizeShortestPath(start, end, distances, path);
 }
 
+const speedSlider = document.getElementById('speed-slider');
+const speedValue = document.getElementById('speed-value');
+
+speedSlider.addEventListener('input', () => {
+    speedValue.textContent = `${speedSlider.value} ms`;
+});
+
 function visualizeShortestPath(start, end, distances, path) {
-    //clear the previous one if any
     document.querySelectorAll('.start-node, .end-node, .path-node, .visited-node').forEach(el => {
         el.classList.remove('start-node', 'end-node', 'path-node', 'visited-node');
     });
@@ -110,16 +116,17 @@ function visualizeShortestPath(start, end, distances, path) {
 
     let step = 0;
     let cumulativeDelay = 0;
+    const speed = parseInt(speedSlider.value, 10);
+
     function highlightPath() {
         if (step < path.length) {
             const nodeId = path[step];
             document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('path-node');
-            cumulativeDelay += 1000;
+            cumulativeDelay += speed;
             step++;
             setTimeout(highlightPath, cumulativeDelay);
         }
     }
-
 
     Object.keys(distances).forEach(nodeId => {
         if (distances[nodeId] !== Infinity && nodeId !== start && nodeId !== end) {
