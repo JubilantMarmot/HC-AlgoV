@@ -6,13 +6,15 @@
     <title>AlgoVisualizer v1</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/viz.js@2.1.2/viz.js"></script>
+    <script src="https://unpkg.com/viz.js@2.1.2/full.render.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1 class="mt-4 mb-4">For now just Dijkstra's Algorithm</h1>
+        <h1 class="mt-4 mb-4">AlgoV</h1>
 
         <div class="form-group">
-            <label for="speed-slider">Animation Speed ( in miliseconds)</label>
+            <label for="speed-slider">Animation Speed (in milliseconds)</label>
             <input type="range" id="speed-slider" class="form-control-range" min="100" max="2000" step="100" value="1000">
             <small id="speed-value">1000 ms</small>
         </div>
