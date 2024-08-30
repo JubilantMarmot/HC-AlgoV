@@ -5,7 +5,9 @@ const runAlgorithmButton = document.getElementById('run-algorithm');
 
 let nodes = [];
 let edges = [];
-let graph = {};
+let adjacencyList = {};
+let shortestPaths = {};
+let previousNodes = {};
 
 function initializeGraph() {
     nodes = [
@@ -52,20 +54,86 @@ function drawGraph() {
         edgeElement.style.top = `${fromNode.y}px`;
         graphContainer.appendChild(edgeElement);
     });
+}function initializeAdjacencyList() {
+    adjacencyList = {};
+    nodes.forEach(node => {
+        adjacencyList[node.id] = [];
+    });
+    edges.forEach(edge => {
+        adjacencyList[edge.from].push({ to: edge.to, weight: edge.weight });
+        adjacencyList[edge.to].push({ to: edge.from, weight: edge.weight }); // Assuming undirected graph
+    });
 }
 
 function dijkstra(start, end) {
-    //todo this one will take time
-    const startNode = document.querySelector(`.node[data-id="${start}"]`);
-    const endNode = document.querySelector(`.node[data-id="${end}"]`);
-    startNode.classList.add('start-node');
-    endNode.classList.add('end-node');
+    initializeAdjacencyList();
+
+    let unvisitedNodes = new Set(nodes.map(node => node.id));
+    let distances = {};
+    let path = [];
+
+    nodes.forEach(node => {
+        distances[node.id] = Infinity;
+        previousNodes[node.id] = null;
+    });
+    distances[start] = 0;
+
+    while (unvisitedNodes.size > 0) {
+        let currentNode = [...unvisitedNodes].reduce((minNode, node) => {
+            return (distances[node] < distances[minNode] ? node : minNode);
+        }, [...unvisitedNodes][0]);
+
+        if (distances[currentNode] === Infinity) break;
+
+        unvisitedNodes.delete(currentNode);
+
+        adjacencyList[currentNode].forEach(neighbor => {
+            let alternativePath = distances[currentNode] + neighbor.weight;
+            if (alternativePath < distances[neighbor.to]) {
+                distances[neighbor.to] = alternativePath;
+                previousNodes[neighbor.to] = currentNode;
+            }
+        });
+    }
+
+    visualizeShortestPath(start, end, distances, path);
+}
+
+function visualizeShortestPath(start, end, distances, path) {
+    //clear the previous one if any
+    document.querySelectorAll('.start-node, .end-node, .path-node, .visited-node').forEach(el => {
+        el.classList.remove('start-node', 'end-node', 'path-node', 'visited-node');
+    });
+
+    document.querySelector(`.node[data-id="${start}"]`).classList.add('start-node');
+    document.querySelector(`.node[data-id="${end}"]`).classList.add('end-node');
+
+    let step = 0;
+    let cumulativeDelay = 0;
+    function highlightPath() {
+        if (step < path.length) {
+            const nodeId = path[step];
+            document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('path-node');
+            cumulativeDelay += 1000;
+            step++;
+            setTimeout(highlightPath, cumulativeDelay);
+        }
+    }
+
+
+    Object.keys(distances).forEach(nodeId => {
+        if (distances[nodeId] !== Infinity && nodeId !== start && nodeId !== end) {
+            document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('visited-node');
+        }
+    });
+
+    highlightPath();
 }
 
 runAlgorithmButton.addEventListener('click', () => {
     const start = parseInt(startNodeInput.value, 10);
     const end = parseInt(endNodeInput.value, 10);
-    if (!isNaN(start) && !isNaN(end)) {
+    if (!isNaN(start) && !isNaN(end) && start !== end) {
         dijkstra(start, end);
     }
 });
