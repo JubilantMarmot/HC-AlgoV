@@ -1,0 +1,40 @@
+#graph-container {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #ddd;
+    position: relative;
+}
+
+.node {
+    width: 30px;
+    height: 30px;
+    background-color: #007bff;
+    border-radius: 50%;
+    position: absolute;
+    text-align: center;
+    line-height: 30px;
+    color: white;
+    font-weight: bold;
+}
+
+.edge {
+    position: absolute;
+    border: 1px solid #007bff;
+    background-color: transparent;
+}
+
+.start-node {
+    background-color: #28a745;
+}
+
+.end-node {
+    background-color: #dc3545;
+}
+
+.path-node {
+    background-color: #ffc107;
+}
+
+.visited-node {
+    background-color: #17a2b8;
+}
