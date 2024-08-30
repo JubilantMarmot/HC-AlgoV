@@ -2,31 +2,11 @@ const graphContainer = document.getElementById('graph-container');
 const startNodeInput = document.getElementById('start-node');
 const endNodeInput = document.getElementById('end-node');
 const runAlgorithmButton = document.getElementById('run-algorithm');
+const algorithmSelect = document.getElementById('algorithm-select');
 
 let nodes = [];
 let edges = [];
 let adjacencyList = {};
-let shortestPaths = {};
-let previousNodes = {};
-
-function initializeGraph() {
-    nodes = [
-        { id: 0, x: 50, y: 50 },
-        { id: 1, x: 200, y: 50 },
-        { id: 2, x: 50, y: 200 },
-        { id: 3, x: 200, y: 200 }
-    ];
-    
-    edges = [
-        { from: 0, to: 1, weight: 10 },
-        { from: 1, to: 2, weight: 15 },
-        { from: 2, to: 3, weight: 20 },
-        { from: 0, to: 2, weight: 25 },
-        { from: 1, to: 3, weight: 30 }
-    ];
-    
-    drawGraph();
-}
 
 function drawGraph() {
     graphContainer.innerHTML = '';
@@ -54,14 +34,35 @@ function drawGraph() {
         edgeElement.style.top = `${fromNode.y}px`;
         graphContainer.appendChild(edgeElement);
     });
-}function initializeAdjacencyList() {
+}
+
+function initializeGraph() {
+    nodes = [
+        { id: 0, x: 50, y: 50 },
+        { id: 1, x: 200, y: 50 },
+        { id: 2, x: 50, y: 200 },
+        { id: 3, x: 200, y: 200 }
+    ];
+    
+    edges = [
+        { from: 0, to: 1, weight: 10 },
+        { from: 1, to: 2, weight: 15 },
+        { from: 2, to: 3, weight: 20 },
+        { from: 0, to: 2, weight: 25 },
+        { from: 1, to: 3, weight: 30 }
+    ];
+    
+    drawGraph();
+}
+
+function initializeAdjacencyList() {
     adjacencyList = {};
     nodes.forEach(node => {
         adjacencyList[node.id] = [];
     });
     edges.forEach(edge => {
         adjacencyList[edge.from].push({ to: edge.to, weight: edge.weight });
-        adjacencyList[edge.to].push({ to: edge.from, weight: edge.weight }); // Assuming undirected graph
+        adjacencyList[edge.to].push({ to: edge.from, weight: edge.weight });
     });
 }
 
@@ -70,7 +71,7 @@ function dijkstra(start, end) {
 
     let unvisitedNodes = new Set(nodes.map(node => node.id));
     let distances = {};
-    let path = [];
+    let previousNodes = {};
 
     nodes.forEach(node => {
         distances[node.id] = Infinity;
@@ -96,17 +97,59 @@ function dijkstra(start, end) {
         });
     }
 
-    visualizeShortestPath(start, end, distances, path);
+    visualizeShortestPath(start, end, distances, previousNodes);
 }
 
-const speedSlider = document.getElementById('speed-slider');
-const speedValue = document.getElementById('speed-value');
+function astar(start, end) {
+    initializeAdjacencyList();
 
-speedSlider.addEventListener('input', () => {
-    speedValue.textContent = `${speedSlider.value} ms`;
-});
+    let openSet = new Set([start]);
+    let closedSet = new Set();
+    let gScores = {};
+    let fScores = {};
+    let previousNodes = {};
 
-function visualizeShortestPath(start, end, distances, path) {
+    nodes.forEach(node => {
+        gScores[node.id] = Infinity;
+        fScores[node.id] = Infinity;
+        previousNodes[node.id] = null;
+    });
+    gScores[start] = 0;
+    fScores[start] = heuristic(start, end);
+
+    while (openSet.size > 0) {
+        let currentNode = [...openSet].reduce((lowest, node) => {
+            return fScores[node] < fScores[lowest] ? node : lowest;
+        }, [...openSet][0]);
+
+        if (currentNode === end) {
+            return visualizeShortestPath(start, end, gScores, previousNodes);
+        }
+
+        openSet.delete(currentNode);
+        closedSet.add(currentNode);
+
+        adjacencyList[currentNode].forEach(neighbor => {
+            if (closedSet.has(neighbor.to)) return;
+
+            let tentativeGScore = gScores[currentNode] + neighbor.weight;
+            if (!openSet.has(neighbor.to)) openSet.add(neighbor.to);
+            else if (tentativeGScore >= gScores[neighbor.to]) return;
+
+            previousNodes[neighbor.to] = currentNode;
+            gScores[neighbor.to] = tentativeGScore;
+            fScores[neighbor.to] = gScores[neighbor.to] + heuristic(neighbor.to, end);
+        });
+    }
+}
+
+function heuristic(node, end) {
+    const nodePos = nodes.find(n => n.id === node);
+    const endPos = nodes.find(n => n.id === end);
+    return Math.abs(nodePos.x - endPos.x) + Math.abs(nodePos.y - endPos.y);
+}
+
+function visualizeShortestPath(start, end, distances, previousNodes) {
     document.querySelectorAll('.start-node, .end-node, .path-node, .visited-node').forEach(el => {
         el.classList.remove('start-node', 'end-node', 'path-node', 'visited-node');
     });
@@ -141,7 +184,12 @@ runAlgorithmButton.addEventListener('click', () => {
     const start = parseInt(startNodeInput.value, 10);
     const end = parseInt(endNodeInput.value, 10);
     if (!isNaN(start) && !isNaN(end) && start !== end) {
-        dijkstra(start, end);
+        const algorithm = algorithmSelect.value;
+        if (algorithm === 'dijkstra') {
+            dijkstra(start, end);
+        } else if (algorithm === 'astar') {
+            astar(start, end);
+        }
     }
 });
 

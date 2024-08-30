@@ -15,7 +15,15 @@
             <label for="speed-slider">Animation Speed ( in miliseconds)</label>
             <input type="range" id="speed-slider" class="form-control-range" min="100" max="2000" step="100" value="1000">
             <small id="speed-value">1000 ms</small>
-        </div>        
+        </div>
+
+        <div class="form-group">
+            <label for="algorithm-select">Select Algorithm</label>
+            <select id="algorithm-select" class="form-control">
+                <option value="dijkstra">Dijkstra's Algorithm</option>
+                <option value="astar">A* Algorithm</option>
+            </select>
+        </div>
 
         <div class="row">
             <div class="col-md-8">
