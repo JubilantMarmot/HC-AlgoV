@@ -6,6 +6,9 @@ const algorithmSelect = document.getElementById('algorithm-select');
 const speedSlider = document.getElementById('speed-slider');
 const drawGraphButton = document.getElementById('draw-graph');
 const exportGraphButton = document.getElementById('export-graph');
+const undoButton = document.getElementById('undo');
+const redoButton = document.getElementById('redo');
+const importButton = document.getElementById('import');
 
 let nodes = [];
 let edges = [];
@@ -15,16 +18,18 @@ let edgeElements = {};
 let isDrawingEdge = false;
 let startNode = null;
 let endNode = null;
+let history = [];
+let historyIndex = -1;
 
 function convertToDOT() {
     let dotString = 'graph G {\n';
 
     nodes.forEach(node => {
-        dotString += `    ${node.id} [label="${node.id}"];\n`;
+        dotString += `    ${node.id} [label="${node.id}", color="${node.color || '#007bff'}"];\n`;
     });
 
     edges.forEach(edge => {
-        dotString += `    ${edge.from} -- ${edge.to} [label="${edge.weight}"];\n`;
+        dotString += `    ${edge.from} -- ${edge.to} [label="${edge.weight}", color="${edge.color || '#007bff'}"];\n`;
     });
 
     dotString += '}\n';
@@ -61,6 +66,7 @@ function initializeGraph() {
         { from: 1, to: 3, weight: 30 }
     ];
 
+    saveState(); // Save the initial state
     renderGraph();
 }
 
@@ -185,27 +191,57 @@ function visualizeShortestPath(start, end, previousNodes) {
     highlightPath();
 }
 
-function addNode(id) {
+function addNode(id, color) {
     if (nodes.find(node => node.id === id)) return;
-    nodes.push({ id });
+    nodes.push({ id, color });
+    saveState(); // Save the state after adding
     renderGraph();
 }
 
 function removeNode(id) {
     nodes = nodes.filter(node => node.id !== id);
     edges = edges.filter(edge => edge.from !== id && edge.to !== id);
+    saveState(); // Save the state after removing
     renderGraph();
 }
 
-function addEdge(from, to, weight) {
+function addEdge(from, to, weight, color) {
     if (edges.find(edge => edge.from === from && edge.to === to)) return;
-    edges.push({ from, to, weight });
+    edges.push({ from, to, weight, color });
+    saveState(); // Save the state after adding
     renderGraph();
 }
 
 function removeEdge(from, to) {
     edges = edges.filter(edge => !(edge.from === from && edge.to === to));
+    saveState(); // Save the state after removing
     renderGraph();
+}
+
+function saveState() {
+    history = history.slice(0, historyIndex + 1); // Remove future history
+    history.push({ nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) });
+    historyIndex = history.length - 1;
+}
+
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        const state = history[historyIndex];
+        nodes = state.nodes;
+        edges = state.edges;
+        renderGraph();
+    }
+}
+
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        const state = history[historyIndex];
+        nodes = state.nodes;
+        edges = state.edges;
+        renderGraph();
+    }
 }
 
 function saveGraph() {
@@ -230,42 +266,7 @@ function loadGraph(file) {
     reader.readAsText(file);
 }
 
-function setupNodeInteractions() {
-    graphContainer.addEventListener('click', (event) => {
-        const nodeId = event.target.dataset.id;
-        if (nodeId) {
-            if (isDrawingEdge) {
-                if (startNode === null) {
-                    startNode = parseInt(nodeId, 10);
-                } else {
-                    endNode = parseInt(nodeId, 10);
-                    if (startNode !== endNode) {
-                        const weight = prompt('Enter edge weight:', '10');
-                        if (weight) addEdge(startNode, endNode, parseInt(weight, 10));
-                    }
-                    startNode = null;
-                    endNode = null;
-                }
-                isDrawingEdge = false;
-            } else {
-                event.target.classList.toggle('selected-node');
-            }
-        }
-    });
-}
-
 function setupControls() {
-    drawGraphButton.addEventListener('click', initializeGraph);
-    exportGraphButton.addEventListener('click', () => {
-        const dotString = convertToDOT();
-        const blob = new Blob([dotString], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'graph.dot';
-        a.click();
-        URL.revokeObjectURL(url);
-    });
     runAlgorithmButton.addEventListener('click', () => {
         const start = parseInt(startNodeInput.value, 10);
         const end = parseInt(endNodeInput.value, 10);
@@ -278,8 +279,61 @@ function setupControls() {
             }
         }
     });
+
+    drawGraphButton.addEventListener('click', renderGraph);
+
+    exportGraphButton.addEventListener('click', saveGraph);
+
+    undoButton.addEventListener('click', undo);
+    redoButton.addEventListener('click', redo);
+
+    importButton.addEventListener('change', (event) => {
+        if (event.target.files.length > 0) {
+            loadGraph(event.target.files[0]);
+        }
+    });
 }
 
-setupNodeInteractions();
-setupControls();
+function setupNodeInteractions() {
+    let selectedNode = null;
+
+    graphContainer.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target.classList.contains('node')) {
+            if (selectedNode === null) {
+                selectedNode = parseInt(target.dataset.id, 10);
+                target.classList.add('selected-node');
+            } else {
+                if (isDrawingEdge) {
+                    addEdge(selectedNode, parseInt(target.dataset.id, 10), 10); // Default weight
+                    isDrawingEdge = false;
+                } else {
+                    selectedNode = parseInt(target.dataset.id, 10);
+                }
+                document.querySelectorAll('.node').forEach(node => node.classList.remove('selected-node'));
+                selectedNode = null;
+            }
+        } else {
+            if (isDrawingEdge) {
+                isDrawingEdge = false;
+                document.querySelectorAll('.node').forEach(node => node.classList.remove('selected-node'));
+            }
+        }
+    });
+
+    graphContainer.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        const target = event.target;
+        if (target.classList.contains('node')) {
+            const id = parseInt(target.dataset.id, 10);
+            removeNode(id);
+        } else if (event.target.classList.contains('edge')) {
+            const id = parseInt(event.target.dataset.id, 10);
+            removeEdge(id);
+        }
+    });
+}
+
 initializeGraph();
+setupControls();
+setupNodeInteractions();
