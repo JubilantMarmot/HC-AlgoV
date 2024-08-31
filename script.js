@@ -44,6 +44,32 @@ function renderGraph() {
         .then(element => {
             graphContainer.innerHTML = '';
             graphContainer.appendChild(element);
+
+            document.querySelectorAll('.node').forEach(node => {
+                node.addEventListener('click', () => {
+                    if (isDrawingEdge) {
+                        if (startNode === null) {
+                            startNode = parseInt(node.dataset.id, 10);
+                        } else {
+                            addEdge(startNode, parseInt(node.dataset.id, 10), 10);
+                            startNode = null;
+                        }
+                        renderGraph();
+                    } else {
+                        startNode = parseInt(node.dataset.id, 10);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.edge').forEach(edge => {
+                edge.addEventListener('contextmenu', (event) => {
+                    event.preventDefault();
+                    removeEdge(
+                        parseInt(edge.dataset.from, 10),
+                        parseInt(edge.dataset.to, 10)
+                    );
+                });
+            });
         })
         .catch(error => {
             console.error(error);
