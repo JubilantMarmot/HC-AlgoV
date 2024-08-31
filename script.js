@@ -4,10 +4,17 @@ const endNodeInput = document.getElementById('end-node');
 const runAlgorithmButton = document.getElementById('run-algorithm');
 const algorithmSelect = document.getElementById('algorithm-select');
 const speedSlider = document.getElementById('speed-slider');
+const drawGraphButton = document.getElementById('draw-graph');
+const exportGraphButton = document.getElementById('export-graph');
 
 let nodes = [];
 let edges = [];
 let adjacencyList = {};
+let nodeElements = {};
+let edgeElements = {};
+let isDrawingEdge = false;
+let startNode = null;
+let endNode = null;
 
 function convertToDOT() {
     let dotString = 'graph G {\n';
@@ -165,35 +172,114 @@ function visualizeShortestPath(start, end, previousNodes) {
     function highlightPath() {
         if (step < path.length) {
             const nodeId = path[step];
-            const dotString = convertToDOT();
-            const viz = new Viz();
-            viz.renderSVGElement(dotString)
-                .then(element => {
-                    graphContainer.innerHTML = '';
-                    graphContainer.appendChild(element);
-                    setTimeout(highlightPath, speed);
-                    step++;
-                })
-                .catch(error => {
-                    console.error(error);
-                });
+            document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('path-node');
+            step++;
+            setTimeout(highlightPath, speed);
+        } else {
+            path.forEach(nodeId => {
+                document.querySelector(`.node[data-id="${nodeId}"]`).classList.add('visited-node');
+            });
         }
     }
 
     highlightPath();
 }
 
-runAlgorithmButton.addEventListener('click', () => {
-    const start = parseInt(startNodeInput.value, 10);
-    const end = parseInt(endNodeInput.value, 10);
-    if (!isNaN(start) && !isNaN(end) && start !== end) {
-        const algorithm = algorithmSelect.value;
-        if (algorithm === 'dijkstra') {
-            dijkstra(start, end);
-        } else if (algorithm === 'astar') {
-            astar(start, end);
-        }
-    }
-});
+function addNode(id) {
+    if (nodes.find(node => node.id === id)) return;
+    nodes.push({ id });
+    renderGraph();
+}
 
+function removeNode(id) {
+    nodes = nodes.filter(node => node.id !== id);
+    edges = edges.filter(edge => edge.from !== id && edge.to !== id);
+    renderGraph();
+}
+
+function addEdge(from, to, weight) {
+    if (edges.find(edge => edge.from === from && edge.to === to)) return;
+    edges.push({ from, to, weight });
+    renderGraph();
+}
+
+function removeEdge(from, to) {
+    edges = edges.filter(edge => !(edge.from === from && edge.to === to));
+    renderGraph();
+}
+
+function saveGraph() {
+    const data = { nodes, edges };
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'graph.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function loadGraph(file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const data = JSON.parse(event.target.result);
+        nodes = data.nodes;
+        edges = data.edges;
+        renderGraph();
+    };
+    reader.readAsText(file);
+}
+
+function setupNodeInteractions() {
+    graphContainer.addEventListener('click', (event) => {
+        const nodeId = event.target.dataset.id;
+        if (nodeId) {
+            if (isDrawingEdge) {
+                if (startNode === null) {
+                    startNode = parseInt(nodeId, 10);
+                } else {
+                    endNode = parseInt(nodeId, 10);
+                    if (startNode !== endNode) {
+                        const weight = prompt('Enter edge weight:', '10');
+                        if (weight) addEdge(startNode, endNode, parseInt(weight, 10));
+                    }
+                    startNode = null;
+                    endNode = null;
+                }
+                isDrawingEdge = false;
+            } else {
+                event.target.classList.toggle('selected-node');
+            }
+        }
+    });
+}
+
+function setupControls() {
+    drawGraphButton.addEventListener('click', initializeGraph);
+    exportGraphButton.addEventListener('click', () => {
+        const dotString = convertToDOT();
+        const blob = new Blob([dotString], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'graph.dot';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+    runAlgorithmButton.addEventListener('click', () => {
+        const start = parseInt(startNodeInput.value, 10);
+        const end = parseInt(endNodeInput.value, 10);
+        if (!isNaN(start) && !isNaN(end) && start !== end) {
+            const algorithm = algorithmSelect.value;
+            if (algorithm === 'dijkstra') {
+                dijkstra(start, end);
+            } else if (algorithm === 'astar') {
+                astar(start, end);
+            }
+        }
+    });
+}
+
+setupNodeInteractions();
+setupControls();
 initializeGraph();

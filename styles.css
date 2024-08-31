@@ -3,24 +3,34 @@
     height: 500px;
     border: 1px solid #ddd;
     position: relative;
+    overflow: hidden;
+    background-color: #f8f9fa;
 }
 
 .node {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     background-color: #007bff;
     border-radius: 50%;
     position: absolute;
     text-align: center;
-    line-height: 30px;
+    line-height: 40px;
     color: white;
     font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    cursor: pointer;
+}
+
+.node:hover {
+    transform: scale(1.1);
 }
 
 .edge {
     position: absolute;
     border: 1px solid #007bff;
     background-color: transparent;
+    transition: background-color 0.3s ease;
 }
 
 .start-node {
@@ -37,4 +47,13 @@
 
 .visited-node {
     background-color: #17a2b8;
+}
+
+.edge {
+    border-color: #007bff;
+}
+
+.edge.highlight {
+    background-color: rgba(0, 123, 255, 0.3);
+    border-color: #0056b3;
 }
